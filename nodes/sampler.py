@@ -33,9 +33,12 @@ class DPAbstractSamplerNode(ABC):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        self._reload_wildcards()
+        self._current_prompt = None
+
+    def _reload_wildcards(self) -> None:
         wildcards_folder = self._find_wildcards_folder()
         self._wildcard_manager = WildcardManager(path=wildcards_folder)
-        self._current_prompt = None
 
     def _find_wildcards_folder(self) -> Path | None:
         """
@@ -90,9 +93,16 @@ class DPAbstractSamplerNode(ABC):
         if text.strip() == "":
             return ("",)
 
-        if self.has_prompt_changed(text):
+        if autorefresh == 'Yes':
+            print(f"Autorfresh: {autorefresh}")
+            self._reload_wildcards()
+            self.context.wildcard_manager.clear_cache()
             self._current_prompt = text
             self._prompts = self.context.sample_prompts(self._current_prompt)
+        else:
+            if self.has_prompt_changed(text):
+                self._current_prompt = text
+                self._prompts = self.context.sample_prompts(self._current_prompt)
 
         if self._prompts is None:
             logger.exception("Something went wrong. Prompts is None!")
