@@ -11,6 +11,28 @@ from dynamicprompts.wildcards import WildcardManager
 logger = logging.getLogger(__name__)
 
 
+def find_wildcards_folder() -> Path:
+    """
+    Find the wildcards folder.
+    First look in the ComfyUI base folder, then in this extension's folder in custom_nodes.
+    """
+    from folder_paths import base_path, folder_names_and_paths
+
+    wildcard_path = Path(base_path) / "wildcards"
+
+    if wildcard_path.exists():
+        return wildcard_path
+
+    extension_path = (
+        Path(folder_names_and_paths["custom_nodes"][0][0])
+        / "comfyui-dynamicprompts"
+    )
+    wildcard_path = extension_path / "wildcards"
+    wildcard_path.mkdir(parents=True, exist_ok=True)
+
+    return wildcard_path
+
+
 class DPAbstractSamplerNode(ABC):
     @classmethod
     def INPUT_TYPES(s):
@@ -41,25 +63,7 @@ class DPAbstractSamplerNode(ABC):
         self._wildcard_manager = WildcardManager(path=wildcards_folder)
 
     def _find_wildcards_folder(self) -> Path | None:
-        """
-        Find the wildcards folder.
-        First look in the comfy_dynamicprompts folder, then in the custom_nodes folder, then in the Comfui base folder.
-        """
-        from folder_paths import base_path, folder_names_and_paths
-
-        wildcard_path = Path(base_path) / "wildcards"
-
-        if wildcard_path.exists():
-            return wildcard_path
-
-        extension_path = (
-            Path(folder_names_and_paths["custom_nodes"][0][0])
-            / "comfyui-dynamicprompts"
-        )
-        wildcard_path = extension_path / "wildcards"
-        wildcard_path.mkdir(parents=True, exist_ok=True)
-
-        return wildcard_path
+        return find_wildcards_folder()
 
     def _get_next_prompt(self, prompts: Iterable[str], current_prompt: str) -> str:
         """
@@ -94,7 +98,7 @@ class DPAbstractSamplerNode(ABC):
             return ("",)
 
         if autorefresh == 'Yes':
-            print(f"Autorfresh: {autorefresh}")
+            print(f"Autorefresh: {autorefresh}")
             self._reload_wildcards()
             self.context.wildcard_manager.clear_cache()
             self._current_prompt = text
