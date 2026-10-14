@@ -7,8 +7,33 @@ from pathlib import Path
 
 from dynamicprompts.sampling_context import SamplingContext
 from dynamicprompts.wildcards import WildcardManager
+from dynamicprompts.wildcards.values import WildcardValues
 
 logger = logging.getLogger(__name__)
+
+INCLUDE_PREFIX = "include::"
+
+
+class DPWildcardManager(WildcardManager):
+    """
+    Wildcard manager that replaces "include::<wildcard name>" entries with the entries of that wildcard,
+    so each included item is as likely as an item listed directly.
+    """
+
+    def get_values(self, wildcard: str) -> WildcardValues:
+        return self._get_values_with_includes(wildcard, ())
+
+    def _get_values_with_includes(self, wildcard: str, chain: tuple[str, ...]) -> WildcardValues:
+        if wildcard in chain:
+            raise ValueError(f"Wildcard include loop: {' -> '.join((*chain, wildcard))}")
+
+        values = []
+        for item in super().get_values(wildcard):
+            if isinstance(item, str) and item.startswith(INCLUDE_PREFIX):
+                values.extend(self._get_values_with_includes(item[len(INCLUDE_PREFIX):].strip(), (*chain, wildcard)))
+            else:
+                values.append(item)
+        return WildcardValues.from_items(values)
 
 
 def find_wildcards_folder() -> Path:
@@ -60,7 +85,7 @@ class DPAbstractSamplerNode(ABC):
 
     def _reload_wildcards(self) -> None:
         wildcards_folder = self._find_wildcards_folder()
-        self._wildcard_manager = WildcardManager(path=wildcards_folder)
+        self._wildcard_manager = DPWildcardManager(path=wildcards_folder)
 
     def _find_wildcards_folder(self) -> Path | None:
         return find_wildcards_folder()

@@ -1,10 +1,9 @@
 import random
 
 from dynamicprompts.generators import JinjaGenerator
-from dynamicprompts.wildcards import WildcardManager
 
 from .generator import DPGeneratorNode
-from .sampler import find_wildcards_folder
+from .sampler import DPWildcardManager, find_wildcards_folder
 
 
 class DPJinja(DPGeneratorNode):
@@ -31,7 +30,7 @@ class DPJinja(DPGeneratorNode):
         return (prompt,)
 
     def generate_prompt(self, text, seed):
-        wildcard_manager = WildcardManager(path=find_wildcards_folder())
+        wildcard_manager = DPWildcardManager(path=find_wildcards_folder())
         prompt_generator = JinjaGenerator(wildcard_manager=wildcard_manager)
 
         # random_sample() draws from the random generator's own Random instance,

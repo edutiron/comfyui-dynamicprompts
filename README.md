@@ -58,6 +58,24 @@ There are many pre-built wildcards collections available. Here are a few to get 
 * [SD Dynamic Prompts built-in](https://github.com/adieyal/sd-dynamic-prompts/tree/main/collections)
 * [Civitai wildcard packs](https://github.com/adieyal/sd-dynamic-prompts/blob/main/docs/resources.md#wildcard-packs)
 
+### Including wildcards in YAML/JSON lists
+An entry of the form `include::<wildcard name>` is replaced by all the entries of that wildcard, so each included item is as likely to be picked as an item listed directly. This avoids repeating shared items across lists:
+
+```yaml
+FF_X_X2_CHARS:
+  - Yuna
+  - Rikku
+FF_X_CHARS:
+  - Tidus
+  - Wakka
+  - include::Series/FF/FF_X_X2_CHARS
+FF_X2_CHARS:
+  - Paine
+  - include::Series/FF/FF_X_X2_CHARS
+```
+
+Use the full wildcard name, the same as in `__Series/FF/FF_X_X2_CHARS__`. Includes can be nested; an include loop raises an error. Other tools that read the same wildcard files don't support this syntax and will output `include::...` literally.
+
 
 ## Node Outputs
 
