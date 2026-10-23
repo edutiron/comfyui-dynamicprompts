@@ -7,11 +7,26 @@ from pathlib import Path
 
 from dynamicprompts.sampling_context import SamplingContext
 from dynamicprompts.wildcards import WildcardManager
+from dynamicprompts.wildcards.collection import structured
 from dynamicprompts.wildcards.values import WildcardValues
 
 logger = logging.getLogger(__name__)
 
 INCLUDE_PREFIX = "include::"
+
+_parse_structured_file_dict = structured._parse_structured_file_dict
+
+
+def _parse_structured_file_dict_with_single_items(data: dict, **kwargs):
+    """
+    Treat "KEY: item" in YAML/JSON wildcard files as a wildcard with that single item ("KEY: [item]").
+    Nested dicts come back through here because the library recurses via the module-level name.
+    """
+    data = {name: [value] if isinstance(value, str) else value for name, value in data.items()}
+    return _parse_structured_file_dict(data, **kwargs)
+
+
+structured._parse_structured_file_dict = _parse_structured_file_dict_with_single_items
 
 
 class DPWildcardManager(WildcardManager):
