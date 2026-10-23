@@ -58,25 +58,6 @@ There are many pre-built wildcards collections available. Here are a few to get 
 * [SD Dynamic Prompts built-in](https://github.com/adieyal/sd-dynamic-prompts/tree/main/collections)
 * [Civitai wildcard packs](https://github.com/adieyal/sd-dynamic-prompts/blob/main/docs/resources.md#wildcard-packs)
 
-### Including wildcards in YAML/JSON lists
-An entry of the form `include::<wildcard name>` is replaced by all the entries of that wildcard, so each included item is as likely to be picked as an item listed directly. This avoids repeating shared items across lists:
-
-```yaml
-FF_X_X2_CHARS:
-  - Yuna
-  - Rikku
-FF_X_CHARS:
-  - Tidus
-  - Wakka
-  - include::Series/FF/FF_X_X2_CHARS
-FF_X2_CHARS:
-  - Paine
-  - include::Series/FF/FF_X_X2_CHARS
-```
-
-Use the full wildcard name, the same as in `__Series/FF/FF_X_X2_CHARS__`. Includes can be nested; an include loop raises an error. Other tools that read the same wildcard files don't support this syntax and will output `include::...` literally.
-
-
 ## Node Outputs
 
 All nodes in this library produce a String output that can typically be passed into Clip Text Encode Prompts. Both positive and negative nodes are supported.
@@ -98,3 +79,53 @@ Please note, since ComfyUI is inherently stateless, some nodes might have a slig
 2. Currently, the only way to view the generated prompt is through console output. A future release will introduce nodes to display the generate prompt on screen and to write it to a file.
 3. It is not currently possible to chain generators, this functionality will be added in future releases.
 5. The installation script will be  automated in the future for ease of use.
+
+## Improvements over original comfyui-dynamicprompts
+
+- **Repaired autorefresh.** With `autorefresh` set to `Yes`, changes to wildcard files take effect on the next generation, without restarting ComfyUI.
+- **Weights in YAML wildcards.** Prefix an item with `<weight>::`, or use `text`/`weight` keys. Items without a weight have weight 1:
+
+  ```yaml
+  HAIR:
+    - 5::blonde hair                  # 5 times as likely as black hair
+    - black hair
+    - {text: red hair, weight: 0.5}   # half as likely as black hair
+  ```
+
+- **`include::` wildcards inside YAML wildcards.** Included wildcards are unpacked into the parent list rather than processed recursively, so every item has the same chance of being picked. If the included list has weights, they'll also be taken into account. Example:
+
+  ```yaml
+  FF_CHARS:
+    - include::FF_VII_CHARS
+    - include::FF_X_CHARS
+    - Cid
+  FF_VII_CHARS:
+    - Cloud
+    - Tifa
+  FF_X_CHARS:
+    - Tidus
+    - Wakka
+  ```
+
+  Includes can be nested; an include loop raises an error. Remember that other nodes that read Yaml wildcard files don't support this syntax and will output `include::...` literally.
+
+- **Single-item YAML wildcards on one line.** A wildcard with one item can be written without the list hyphen:
+
+  ```yaml
+  HATSUNE_MIKU: aqua eyes, aqua hair, twintails, very long hair,
+                grey shirt, detached sleeves, black skirt, thighhighs
+  ```
+
+  This is the same as:
+
+  ```yaml
+  HATSUNE_MIKU: 
+    - aqua eyes, aqua hair, twintails, very long hair,
+      grey shirt, detached sleeves, black skirt, thighhighs
+  ```
+
+  Long values can include linebreaks (but be careful with the indentation). The parser joins the lines with a space.
+
+- **Use newer dynamicprompts package.** Removes useless console warnings such as `Unsupported list item: ...`.
+- **Added Seed input to the Jinja2 Templates node.** The same seed gives the same result when using `random_sample()`, `wildcard()`, `choice()`, etc.
+- **Repaired Autorefresh in the Jinja2 Templates node.** Autorefresh wasn't working as expected when using `random_sample()`, `wildcard()`, `choice()`... in the Jinja2 Templates node. It now works as expected and changes to wildcard files take effect on the next generation (just like in the Random Prompts node).
