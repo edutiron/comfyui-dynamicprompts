@@ -28,6 +28,29 @@ def _parse_structured_file_dict_with_single_items(data: dict, **kwargs):
 
 structured._parse_structured_file_dict = _parse_structured_file_dict_with_single_items
 
+_parse_structured_file_list = structured._parse_structured_file_list
+
+
+def _parse_structured_file_list_with_leading_weights(value: list):
+    """
+    Split "weight::content" items on the first "::" instead of the library's last one, so
+    that items containing "::" (e.g. "5::beach, [crabs::0.3]") don't break weight parsing.
+    """
+    items = []
+    for item in value:
+        if isinstance(item, str) and item[:1].isdigit():
+            weight, sep, content = item.partition("::")
+            try:
+                if sep:
+                    item = {"content": content, "weight": float(weight)}
+            except ValueError:
+                pass
+        items.append(item)
+    return _parse_structured_file_list(items)
+
+
+structured._parse_structured_file_list = _parse_structured_file_list_with_leading_weights
+
 
 class DPWildcardManager(WildcardManager):
     """
